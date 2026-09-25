@@ -1,84 +1,148 @@
 ---
 import Base from '../layouts/Base.astro';
 import { site, leetcode as lcCfg } from '../../site.config';
-import { getLeetCodeData, formatDate, prettyLang } from '../lib/leetcode';
+import {
+  getLeetCodeData,
+  profileUrl,
+  problemUrl,
+  formatDate,
+  prettyLang,
+} from '../lib/leetcode';
 
 const title = '刷题';
 const lc = await getLeetCodeData();
-const profileUrl = `https://leetcode.com/u/${lc.username}/`;
+const home = profileUrl(lc.username);
 
-const total = lc.total || 1; // 避免除零
-const pct = (n: number) => ((n / total) * 100).toFixed(1) + '%';
+const denom = lc.total || 1;
+const pct = (n: number) => ((n / denom) * 100).toFixed(1) + '%';
+
+// 语言分布条
+const langTotal = lc.languages.reduce((s, x) => s + x.count, 0) || 1;
+const langColors = ['var(--accent)', 'var(--easy)', 'var(--medium)', 'var(--hard)', 'var(--fg-subtle)'];
 
 const updated = lc.fetchedAt
   ? new Date(lc.fetchedAt).toLocaleString('zh-CN', { hour12: false })
   : null;
 ---
 
-<Base title={title} description={`${site.name} 的 LeetCode 记录`}>
+<Base title={title} description={`${site.name} 的刷题记录`}>
   <section class="section">
-    <h1 class="hero-name">{title}</h1>
-    <p class="muted" style="margin-top:10px">
-      数据在每次构建时从 LeetCode 官方接口拉取，无需手动维护。
+    <h1 class="page-title">{title}</h1>
+    <p class="page-sub">
+      数据每次构建时从{lc.site === 'cn' ? '力扣中国站' : 'LeetCode'}官方接口拉取，无需手动维护。
     </p>
   </section>
 
+  <hr class="divider" style="margin:28px 0 0" />
+
   <section class="section">
     <div class="stats">
-      <div>
+      <div class="stat">
         <div class="stat-value">{lc.total}</div>
-        <div class="stat-label">总通过</div>
+        <div class="stat-label">已解决</div>
       </div>
-      <div>
-        <div class="stat-value" style="color:var(--easy)">{lc.easy}</div>
-        <div class="stat-label">简单</div>
-      </div>
-      <div>
-        <div class="stat-value" style="color:var(--medium)">{lc.medium}</div>
-        <div class="stat-label">中等</div>
-      </div>
-      <div>
-        <div class="stat-value" style="color:var(--hard)">{lc.hard}</div>
-        <div class="stat-label">困难</div>
-      </div>
-      {lc.ranking ? (
-        <div>
-          <div class="stat-value">#{lc.ranking}</div>
-          <div class="stat-label">排名</div>
-        </div>
-      ) : null}
+      {
+        lc.hasDifficulty ? (
+          <>
+            <div class="stat">
+              <div class="stat-value" style="color:var(--easy)">{lc.easy}</div>
+              <div class="stat-label">简单</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" style="color:var(--medium)">{lc.medium}</div>
+              <div class="stat-label">中等</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" style="color:var(--hard)">{lc.hard}</div>
+              <div class="stat-label">困难</div>
+            </div>
+          </>
+        ) : (
+          <>
+            {lc.submissions !== undefined && (
+              <div class="stat">
+                <div class="stat-value">{lc.submissions}</div>
+                <div class="stat-label">总提交</div>
+              </div>
+            )}
+            {lc.acceptance !== undefined && (
+              <div class="stat">
+                <div class="stat-value">{lc.acceptance}%</div>
+                <div class="stat-label">通过率</div>
+              </div>
+            )}
+            {lc.streak !== undefined && (
+              <div class="stat">
+                <div class="stat-value">{lc.streak}</div>
+                <div class="stat-label">连续打卡（天）</div>
+              </div>
+            )}
+            {lc.activeDays !== undefined && (
+              <div class="stat">
+                <div class="stat-value">{lc.activeDays}</div>
+                <div class="stat-label">今年活跃（天）</div>
+              </div>
+            )}
+          </>
+        )
+      }
     </div>
   </section>
 
-  <section class="section">
-    <div class="bar" role="img" aria-label="难度分布">
-      <span class="bar-easy" style={`width:${pct(lc.easy)}`}></span>
-      <span class="bar-medium" style={`width:${pct(lc.medium)}`}></span>
-      <span class="bar-hard" style={`width:${pct(lc.hard)}`}></span>
-    </div>
-    <div class="legend">
-      <span><i style="background:var(--easy)"></i>简单 <span class="num">{lc.easy}</span></span>
-      <span><i style="background:var(--medium)"></i>中等 <span class="num">{lc.medium}</span></span>
-      <span><i style="background:var(--hard)"></i>困难 <span class="num">{lc.hard}</span></span>
-    </div>
-  </section>
+  {
+    lc.hasDifficulty && (
+      <section class="section">
+        <div class="section-head"><h2>难度分布</h2></div>
+        <div class="bar" role="img" aria-label="难度分布">
+          <span class="bar-easy" style={`width:${pct(lc.easy)}`}></span>
+          <span class="bar-medium" style={`width:${pct(lc.medium)}`}></span>
+          <span class="bar-hard" style={`width:${pct(lc.hard)}`}></span>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--easy)"></i>简单 <span class="num">{lc.easy}</span></span>
+          <span><i style="background:var(--medium)"></i>中等 <span class="num">{lc.medium}</span></span>
+          <span><i style="background:var(--hard)"></i>困难 <span class="num">{lc.hard}</span></span>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    lc.languages.length > 0 && (
+      <section class="section">
+        <div class="section-head"><h2>语言分布</h2></div>
+        <div class="bar" role="img" aria-label="语言分布">
+          {lc.languages.map((l, i) => (
+            <span style={`width:${((l.count / langTotal) * 100).toFixed(1)}%;background:${langColors[i % langColors.length]}`}></span>
+          ))}
+        </div>
+        <div class="legend">
+          {lc.languages.map((l, i) => (
+            <span>
+              <i style={`background:${langColors[i % langColors.length]}`}></i>
+              {l.name} <span class="num">{l.count}</span>
+            </span>
+          ))}
+        </div>
+      </section>
+    )
+  }
 
   <section class="section">
     <div class="section-head">
-      <h2>最近提交</h2>
-      <a class="more" href={profileUrl} target="_blank" rel="noopener">LeetCode 主页 →</a>
+      <h2>最近通过</h2>
+      <a class="more" href={home} target="_blank" rel="noopener">力扣主页 →</a>
     </div>
     {
       lc.recent.length === 0 ? (
-        <div class="empty">暂无提交记录。</div>
+        <div class="empty">暂无记录。</div>
       ) : (
         <div class="list">
           {lc.recent.map((s) => (
-            <a class="item" href={`https://leetcode.com/problems/${s.titleSlug}/`} target="_blank" rel="noopener">
+            <a class="item" href={problemUrl(s.slug)} target="_blank" rel="noopener">
               <div class="item-title">{s.title}</div>
               <div class="item-meta">
-                <span>{formatDate(s.timestamp)}</span>
-                {s.statusDisplay && <span>{s.statusDisplay}</span>}
+                <span>{formatDate(s.ts)}</span>
                 {s.lang && <span class="tag">{prettyLang(s.lang)}</span>}
               </div>
             </a>
@@ -91,11 +155,16 @@ const updated = lc.fetchedAt
   <section class="section">
     <p class="small subtle">
       {lc.ok ? (
-        <>用户名 <code>{lc.username}</code>{updated ? <> · 更新于 {updated}</> : null}</>
+        <>
+          {lc.realName && <>{lc.realName} · </>}
+          <code>{lc.username}</code>
+          {updated ? <> · 更新于 {updated}</> : null}
+        </>
       ) : (
         <>
-          构建时没能取到数据（可能网络不通，或用户名 <code>{lcCfg.username}</code> 不正确）。
-          可在 <code>site.config.ts</code> 里改用户名或填 <code>leetcode.fallback</code>。
+          构建时没能取到数据（网络不通，或用户名 / 站点配置不对）。
+          请检查 <code>site.config.ts</code> 里的 <code>leetcode.site</code>（当前 {lcCfg.site}）和
+          <code>leetcode.username</code>（当前 {lcCfg.username}）。
         </>
       )}
     </p>

@@ -18,11 +18,13 @@ const years = Object.keys(byYear)
 
 <Base title={title} description={`${site.name} 的论文与 preprint 列表`}>
   <section class="section">
-    <h1 class="hero-name">{title}</h1>
-    <p class="muted" style="margin-top:10px">
+    <h1 class="page-title">{title}</h1>
+    <p class="page-sub">
       在 <code>site.config.ts</code> 的 <code>publications</code> 里增删条目即可。
     </p>
   </section>
+
+  <hr class="divider" style="margin:28px 0 0" />
 
   {
     years.length === 0 ? (

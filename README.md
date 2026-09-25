@@ -87,11 +87,19 @@ draft: false   # true 则生产构建时隐藏
 `src/styles/global.css` 最顶部的 `:root` 里改 `--accent` 一行（浅色）和
 `[data-theme='dark']` 里的 `--accent`（深色）。
 
-### 改 LeetCode 用户名
+### 改刷题账号
 
-`site.config.ts` → `leetcode.username`。
-注意填 **用户名**（profile 链接里 `/u/xxx/` 的那段），不是主页上显示的昵称。
-抓不到数据时页面会显示兜底值，不会构建失败。
+`site.config.ts` → `leetcode` 里两个字段：
+
+- `site`：`'cn'` = 力扣中国站 leetcode.cn，`'com'` = LeetCode 国际站 leetcode.com。
+  **两个站账号不互通，填错会抓不到数据。**
+- `username`：**用户名**，不是主页上显示的昵称。
+  力扣中国站取个人主页地址 `leetcode.cn/u/xxx/` 里的 `xxx`。
+
+抓不到数据时页面会显示兜底值并提示原因，不会构建失败。
+
+> 注：国际站能拿到难度分布；力扣中国站的公开接口不提供难度分布，
+> 页面会自动改为展示「总提交 / 通过率 / 打卡天数 / 语言分布」。
 
 ### 加导航项
 

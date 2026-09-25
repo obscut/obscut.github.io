@@ -9,14 +9,14 @@ const title = '简历';
   <section class="section">
     <div class="section-head">
       <div>
-        <h1 class="hero-name">{site.name}</h1>
+        <h1 class="page-title">{site.name}</h1>
         <div class="hero-role">{site.role} · {site.affiliation}</div>
         <div class="hero-meta">
           {site.location}
           {site.email ? ` · ${site.email}` : ''}
         </div>
         <div class="link-row">
-          {links.map((l) => <a href={l.href} target="_blank" rel="noopener">{l.label}</a>)}
+          {links.map((l) => <a class="chip" href={l.href} target="_blank" rel="noopener">{l.label}</a>)}
         </div>
       </div>
       <button class="btn no-print" onclick="window.print()">打印 / 存为 PDF</button>

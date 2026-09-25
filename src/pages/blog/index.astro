@@ -21,11 +21,13 @@ const years = Object.keys(grouped).sort((a, b) => Number(b) - Number(a));
 
 <Base title={title} description={`${site.name} 的博客`}>
   <section class="section">
-    <h1 class="hero-name">{title}</h1>
-    <p class="muted" style="margin-top:10px">
+    <h1 class="page-title">{title}</h1>
+    <p class="page-sub">
       共 {posts.length} 篇。新增文章：在 <code>src/content/blog/</code> 下放一个 <code>.md</code> 文件。
     </p>
   </section>
+
+  <hr class="divider" style="margin:28px 0 0" />
 
   {
     years.length === 0 ? (

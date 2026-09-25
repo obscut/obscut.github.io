@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import { site, intro, links, research, leetcode as lcCfg } from '../../site.config';
-import { getLeetCodeData } from '../lib/leetcode';
+import { getLeetCodeData, profileUrl } from '../lib/leetcode';
 import { fmtDate } from '../lib/format';
 
 const posts = (await getCollection('blog'))
@@ -11,21 +11,30 @@ const posts = (await getCollection('blog'))
   .slice(0, 3);
 
 const lc = await getLeetCodeData();
-const lcProfile = `https://leetcode.com/u/${lc.username}/`;
+const lcProfile = profileUrl(lc.username);
+const initial = site.name.trim().charAt(0).toUpperCase();
 ---
 
 <Base>
   <!-- 首屏 -->
-  <section class="section">
-    <h1 class="hero-name">{site.name}</h1>
-    <div class="hero-role">{site.role} · {site.affiliation}</div>
-    <div class="hero-meta">{site.location}</div>
-
-    <div class="link-row">
-      {site.email && <a href={`mailto:${site.email}`}>{site.email}</a>}
-      {links.map((l) => <a href={l.href} target="_blank" rel="noopener">{l.label}</a>)}
+  <section class="section hero">
+    <div class="mono" aria-hidden="true">
+      {site.avatar ? <img src={site.avatar} alt={site.name} /> : initial}
+    </div>
+    <div>
+      <h1 class="hero-name">{site.name}</h1>
+      <div class="hero-role">{site.role} · {site.affiliation}</div>
+      <div class="hero-meta">{site.location}</div>
+      {site.status && <div class="status"><i></i>{site.status}</div>}
     </div>
   </section>
+
+  <div class="link-row">
+    {site.email && <a class="chip" href={`mailto:${site.email}`}>✉ {site.email}</a>}
+    {links.map((l) => <a class="chip" href={l.href} target="_blank" rel="noopener">{l.label}</a>)}
+  </div>
+
+  <hr class="divider" style="margin:32px 0 0" />
 
   <!-- 关于 -->
   <section class="section">
@@ -91,33 +100,57 @@ const lcProfile = `https://leetcode.com/u/${lc.username}/`;
       <a class="more" href="/leetcode/">详情 →</a>
     </div>
     <div class="stats">
-      <div>
+      <div class="stat">
         <div class="stat-value">{lc.total}</div>
         <div class="stat-label">已解决</div>
       </div>
-      <div>
-        <div class="stat-value">{lc.easy}</div>
-        <div class="stat-label">简单</div>
-      </div>
-      <div>
-        <div class="stat-value">{lc.medium}</div>
-        <div class="stat-label">中等</div>
-      </div>
-      <div>
-        <div class="stat-value">{lc.hard}</div>
-        <div class="stat-label">困难</div>
-      </div>
+      {
+        lc.hasDifficulty ? (
+          <>
+            <div class="stat">
+              <div class="stat-value" style="color:var(--easy)">{lc.easy}</div>
+              <div class="stat-label">简单</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" style="color:var(--medium)">{lc.medium}</div>
+              <div class="stat-label">中等</div>
+            </div>
+            <div class="stat">
+              <div class="stat-value" style="color:var(--hard)">{lc.hard}</div>
+              <div class="stat-label">困难</div>
+            </div>
+          </>
+        ) : (
+          <>
+            {lc.submissions !== undefined && (
+              <div class="stat">
+                <div class="stat-value">{lc.submissions}</div>
+                <div class="stat-label">总提交</div>
+              </div>
+            )}
+            {lc.acceptance !== undefined && (
+              <div class="stat">
+                <div class="stat-value">{lc.acceptance}%</div>
+                <div class="stat-label">通过率</div>
+              </div>
+            )}
+            {lc.activeDays !== undefined && (
+              <div class="stat">
+                <div class="stat-value">{lc.activeDays}</div>
+                <div class="stat-label">今年活跃（天）</div>
+              </div>
+            )}
+          </>
+        )
+      }
     </div>
     {
       !lc.ok && (
-        <p class="small subtle" style="margin-top:14px">
+        <p class="small subtle" style="margin-top:16px">
           数据为兜底值（构建时未能连上 LeetCode）。可在 <code>site.config.ts</code> 的
           <code>leetcode.fallback</code> 里手动填写，或确认用户名 <code>{lcCfg.username}</code> 是否正确。
         </p>
       )
     }
-    <p class="small" style="margin-top:14px">
-      <a href={lcProfile} target="_blank" rel="noopener">前往 LeetCode 主页 →</a>
-    </p>
   </section>
 </Base>

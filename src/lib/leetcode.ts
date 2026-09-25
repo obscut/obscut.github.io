@@ -1,47 +1,214 @@
 import { leetcode as cfg } from '../../site.config';
 
+/**
+ * 支持两个站点：
+ *  - cn  力扣中国站 leetcode.cn（默认，你的账号在这里）
+ *  - com LeetCode 国际站 leetcode.com
+ * 两站账号体系独立，接口也不同，不能混用。
+ */
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
 export interface RecentSubmission {
   title: string;
-  titleSlug: string;
-  timestamp: string;
-  statusDisplay?: string;
+  slug: string;
+  ts: number;
   lang?: string;
 }
 
+export interface LangCount {
+  name: string;
+  count: number;
+}
+
 export interface LeetCodeData {
-  /** 是否成功从官方接口取到数据 */
   ok: boolean;
+  site: 'cn' | 'com';
   username: string;
   realName?: string;
-  ranking?: number | null;
+  /** 已解决题目数 */
   total: number;
+  /** 难度分布；力扣中国站公开接口不提供，此时 hasDifficulty = false */
   easy: number;
   medium: number;
   hard: number;
+  hasDifficulty: boolean;
+  /** 总提交次数 */
+  submissions?: number;
+  /** 通过率（百分比，保留一位小数） */
+  acceptance?: number;
+  /** 按语言统计的解题数 */
+  languages: LangCount[];
+  /** 连续打卡天数 / 今年累计活跃天数 */
+  streak?: number;
+  activeDays?: number;
   recent: RecentSubmission[];
-  /** 数据抓取时间，ISO 字符串；兜底时为 null */
   fetchedAt: string | null;
 }
 
-const QUERY = `query getUserProfile($username: String!) {
-  matchedUser(username: $username) {
-    username
-    profile { realName ranking userAvatar }
-    submitStatsGlobal { acSubmissionNum { difficulty count } }
-  }
-  recentSubmissionList(username: $username, limit: 20) {
-    title
-    titleSlug
-    timestamp
-    statusDisplay
-    lang
-  }
-}`;
+function empty(): LeetCodeData {
+  const f = cfg.fallback;
+  return {
+    ok: false,
+    site: cfg.site,
+    username: cfg.username,
+    total: f.total,
+    easy: f.easy,
+    medium: f.medium,
+    hard: f.hard,
+    hasDifficulty: false,
+    languages: [],
+    recent: [],
+    fetchedAt: null,
+  };
+}
 
-/**
- * 用户名变体。LeetCode 主页上显示的是「昵称」（可能带空格），
- * 而接口需要的是用户名 slug，两者经常不一致，这里挨个试。
- */
+async function gql(
+  url: string,
+  query: string,
+  variables: Record<string, unknown>,
+  referer: string
+): Promise<any | null> {
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Referer: referer,
+        Origin: url.startsWith('https://leetcode.cn')
+          ? 'https://leetcode.cn'
+          : 'https://leetcode.com',
+        'User-Agent': UA,
+      },
+      body: JSON.stringify({ query, variables }),
+      signal: AbortSignal.timeout(12000),
+    });
+    const txt = await res.text();
+    try {
+      return JSON.parse(txt);
+    } catch {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
+/** 力扣中国站 */
+async function fetchCN(username: string): Promise<LeetCodeData | null> {
+  const home = `https://leetcode.cn/u/${username}/`;
+  const OLD = 'https://leetcode.cn/graphql/';
+  const NOJ = 'https://leetcode.cn/graphql/noj-go/';
+
+  // 1) 通过数 / 提交数 / 昵称
+  const q1 = `query($s: String!) {
+    userProfilePublicProfile(userSlug: $s) {
+      profile { realName userSlug }
+      submissionProgress { acTotal totalSubmissions }
+    }
+  }`;
+  const j1 = await gql(OLD, q1, { s: username }, home);
+  const pp = j1?.data?.userProfilePublicProfile;
+  if (!pp) return null;
+
+  const acTotal: number = pp?.submissionProgress?.acTotal ?? 0;
+  const totalSub: number = pp?.submissionProgress?.totalSubmissions ?? 0;
+
+  // 2) 语言分布 + 最近通过
+  const q2 = `query($s: String!) {
+    userLanguageProblemCount(userSlug: $s) { languageName problemsSolved }
+    recentACSubmissions(userSlug: $s) { submitTime lang question { title titleSlug } }
+  }`;
+  const j2 = await gql(NOJ, q2, { s: username }, home);
+
+  const languages: LangCount[] = (j2?.data?.userLanguageProblemCount ?? [])
+    .filter((x: any) => x && x.problemsSolved > 0)
+    .sort((a: any, b: any) => b.problemsSolved - a.problemsSolved)
+    .map((x: any) => ({ name: x.languageName, count: x.problemsSolved }));
+
+  const recent: RecentSubmission[] = (j2?.data?.recentACSubmissions ?? [])
+    .slice(0, cfg.recentLimit)
+    .map((x: any) => ({
+      title: x?.question?.title ?? '',
+      slug: x?.question?.titleSlug ?? '',
+      ts: Number(x?.submitTime ?? 0),
+      lang: x?.lang ?? undefined,
+    }))
+    .filter((x) => x.title);
+
+  // 3) 打卡日历（失败也不影响）
+  const j3 = await gql(
+    NOJ,
+    `query($s: String!, $y: Int!) { userCalendar(userSlug: $s, year: $y) { streak totalActiveDays } }`,
+    { s: username, y: new Date().getFullYear() },
+    home
+  );
+  const cal = j3?.data?.userCalendar;
+
+  return {
+    ok: true,
+    site: 'cn',
+    username: pp?.profile?.userSlug || username,
+    realName: pp?.profile?.realName || undefined,
+    total: acTotal,
+    easy: 0,
+    medium: 0,
+    hard: 0,
+    hasDifficulty: false,
+    submissions: totalSub,
+    acceptance: totalSub > 0 ? Math.round((acTotal / totalSub) * 1000) / 10 : undefined,
+    languages,
+    streak: cal?.streak ?? undefined,
+    activeDays: cal?.totalActiveDays ?? undefined,
+    recent,
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+/** LeetCode 国际站 */
+async function fetchCOM(username: string): Promise<LeetCodeData | null> {
+  const url = 'https://leetcode.com/graphql/';
+  const q = `query getUserProfile($username: String!) {
+    matchedUser(username: $username) {
+      username
+      profile { realName ranking }
+      submitStatsGlobal { acSubmissionNum { difficulty count } }
+    }
+    recentSubmissionList(username: $username, limit: 20) { title titleSlug timestamp lang }
+  }`;
+  const j = await gql(url, q, { username }, `https://leetcode.com/${username}/`);
+  const mu = j?.data?.matchedUser;
+  if (!mu) return null;
+
+  const nums: { difficulty: string; count: number }[] =
+    mu?.submitStatsGlobal?.acSubmissionNum ?? [];
+  const pick = (d: string) => nums.find((x) => x.difficulty === d)?.count ?? 0;
+
+  return {
+    ok: true,
+    site: 'com',
+    username: mu.username,
+    realName: mu?.profile?.realName || undefined,
+    total: pick('All'),
+    easy: pick('Easy'),
+    medium: pick('Medium'),
+    hard: pick('Hard'),
+    hasDifficulty: true,
+    languages: [],
+    recent: (j?.data?.recentSubmissionList ?? [])
+      .slice(0, cfg.recentLimit)
+      .map((x: any) => ({
+        title: x?.title ?? '',
+        slug: x?.titleSlug ?? '',
+        ts: Number(x?.timestamp ?? 0),
+        lang: x?.lang ?? undefined,
+      }))
+      .filter((x) => x.title),
+    fetchedAt: new Date().toISOString(),
+  };
+}
+
+/** 用户名变体：主页显示的是昵称，接口要的是用户名 */
 function variants(raw: string): string[] {
   const t = raw.trim();
   const list = [
@@ -51,110 +218,48 @@ function variants(raw: string): string[] {
     t.replace(/\s+/g, '_'),
     t.toLowerCase().replace(/\s+/g, '-'),
     t.toLowerCase().replace(/\s+/g, ''),
-    t.replace(/[^a-zA-Z0-9_-]/g, ''),
   ];
   return [...new Set(list.filter(Boolean))];
 }
 
-function pickCount(list: { difficulty: string; count: number }[] | undefined, d: string) {
-  return list?.find((x) => x.difficulty === d)?.count ?? 0;
-}
-
-async function fetchOne(username: string): Promise<LeetCodeData | null> {
-  try {
-    const res = await fetch('https://leetcode.com/graphql/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Referer: `https://leetcode.com/${username}/`,
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
-      },
-      body: JSON.stringify({ query: QUERY, variables: { username } }),
-      signal: AbortSignal.timeout(10000),
-    });
-
-    if (!res.ok) return null;
-
-    const json = (await res.json()) as {
-      data?: {
-        matchedUser?: {
-          username: string;
-          profile?: { realName?: string; ranking?: number };
-          submitStatsGlobal?: {
-            acSubmissionNum?: { difficulty: string; count: number }[];
-          };
-        };
-        recentSubmissionList?: RecentSubmission[] | null;
-      };
-    };
-
-    const mu = json?.data?.matchedUser;
-    if (!mu) return null;
-
-    const nums = mu.submitStatsGlobal?.acSubmissionNum;
-    return {
-      ok: true,
-      username: mu.username,
-      realName: mu.profile?.realName || undefined,
-      ranking: mu.profile?.ranking ?? null,
-      total: pickCount(nums, 'All'),
-      easy: pickCount(nums, 'Easy'),
-      medium: pickCount(nums, 'Medium'),
-      hard: pickCount(nums, 'Hard'),
-      recent: (json.data?.recentSubmissionList ?? []).slice(0, cfg.recentLimit),
-      fetchedAt: new Date().toISOString(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function fallback(): LeetCodeData {
-  const f = cfg.fallback;
-  return {
-    ok: false,
-    username: cfg.username,
-    total: f.total,
-    easy: f.easy,
-    medium: f.medium,
-    hard: f.hard,
-    recent: [],
-    fetchedAt: null,
-  };
-}
-
-/**
- * 取 LeetCode 数据。构建时调用一次，结果在页面间复用。
- * 任何网络问题都不会让构建失败 —— 降级到兜底数据。
- */
 export async function getLeetCodeData(): Promise<LeetCodeData> {
-  const cacheKey = '__leetcodeData__';
+  const key = '__leetcodeData__';
   const g = globalThis as unknown as Record<string, Promise<LeetCodeData> | undefined>;
-  if (g[cacheKey]) return g[cacheKey];
+  if (g[key]) return g[key];
 
   const task = (async () => {
+    const fetcher = cfg.site === 'cn' ? fetchCN : fetchCOM;
     for (const v of variants(cfg.username)) {
-      const data = await fetchOne(v);
+      const data = await fetcher(v);
       if (data) return data;
     }
-    return fallback();
+    return empty();
   })();
 
-  g[cacheKey] = task;
+  g[key] = task;
   return task;
 }
 
-/** 把秒级时间戳格式化成 YYYY-MM-DD */
-export function formatDate(ts: string | number): string {
-  const n = typeof ts === 'string' ? Number(ts) : ts;
-  if (!n || Number.isNaN(n)) return '—';
-  const d = new Date(n * 1000);
-  const pad = (x: number) => String(x).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+export function profileUrl(username: string): string {
+  return cfg.site === 'cn'
+    ? `https://leetcode.cn/u/${username}/`
+    : `https://leetcode.com/u/${username}/`;
 }
 
-/** 语言代号美化 */
+export function problemUrl(slug: string): string {
+  return cfg.site === 'cn'
+    ? `https://leetcode.cn/problems/${slug}/`
+    : `https://leetcode.com/problems/${slug}/`;
+}
+
+/** 秒级时间戳 → YYYY-MM-DD */
+export function formatDate(ts: number): string {
+  if (!ts || Number.isNaN(ts)) return '—';
+  const d = new Date(ts * 1000);
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 export function prettyLang(lang?: string): string {
   if (!lang) return '';
   const map: Record<string, string> = {
@@ -173,9 +278,6 @@ export function prettyLang(lang?: string): string {
     ruby: 'Ruby',
     scala: 'Scala',
     mysql: 'MySQL',
-    mssql: 'MSSQL',
-    oraclesql: 'Oracle',
-    pythondata: 'Python',
   };
   return map[lang] ?? lang;
 }

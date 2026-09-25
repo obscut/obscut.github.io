@@ -7,11 +7,13 @@ const title = '项目';
 
 <Base title={title} description={`${site.name} 做过的项目`}>
   <section class="section">
-    <h1 class="hero-name">{title}</h1>
-    <p class="muted" style="margin-top:10px">
+    <h1 class="page-title">{title}</h1>
+    <p class="page-sub">
       在 <code>site.config.ts</code> 的 <code>projects</code> 里增删条目即可。
     </p>
   </section>
+
+  <hr class="divider" style="margin:28px 0 0" />
 
   {
     projects.length === 0 ? (

@@ -12,6 +12,8 @@ export const site = {
   role: '软件工程 · 25 级本科',
   affiliation: '大连理工大学',
   location: '辽宁 · 大连',
+  /** 首屏状态小标，留空则不显示 */
+  status: '本科在读 · 关注 LLM Agent',
   /** SEO 描述 */
   description:
     '大连理工大学软件工程专业本科生，关注 LLM Agent 与大模型应用。记录学习、研究与实践。',
@@ -33,7 +35,7 @@ export const intro: string[] = [
 /** 外链 */
 export const links: { label: string; href: string }[] = [
   { label: 'GitHub', href: 'https://github.com/obscut' },
-  { label: 'LeetCode', href: 'https://leetcode.com/u/Youthful-Khoranah0N/' },
+  { label: '力扣', href: 'https://leetcode.cn/u/nora_xu/' },
   // { label: 'Google Scholar', href: 'https://scholar.google.com/citations?user=xxxx' },
   // { label: '知乎', href: 'https://www.zhihu.com/people/xxxx' },
   // { label: 'Twitter / X', href: 'https://x.com/xxxx' },
@@ -164,11 +166,16 @@ export const skills: { group: string; items: string[] }[] = [
 /** LeetCode 配置 */
 export const leetcode = {
   /**
-   * LeetCode 用户名。
-   * 如果你填的是带空格的"显示名"（例如 LeetCode 个人主页左上角的昵称），
-   * 程序会自动尝试几种常见变体去匹配真实的用户名，抓不到就用下面的兜底数据。
+   * 站点：'cn' = 力扣中国站 leetcode.cn；'com' = LeetCode 国际站 leetcode.com。
+   * 两站账号不互通，填错了会抓不到数据。
    */
-  username: 'Youthful Khoranah0N',
+  site: 'cn' as 'cn' | 'com',
+  /**
+   * 用户名，不是主页上显示的昵称。
+   * 力扣中国站：个人主页地址 leetcode.cn/u/xxx/ 里的 xxx。
+   * 程序会自动试几种常见变体，抓不到就用下面的兜底数据。
+   */
+  username: 'nora_xu',
   /** 联网失败时的兜底数据，避免构建挂掉；也可以手动填真实数字 */
   fallback: {
     total: 0,
