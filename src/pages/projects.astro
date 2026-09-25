@@ -1,0 +1,47 @@
+---
+import Base from '../layouts/Base.astro';
+import { site, projects } from '../../site.config';
+
+const title = '项目';
+---
+
+<Base title={title} description={`${site.name} 做过的项目`}>
+  <section class="section">
+    <h1 class="hero-name">{title}</h1>
+    <p class="muted" style="margin-top:10px">
+      在 <code>site.config.ts</code> 的 <code>projects</code> 里增删条目即可。
+    </p>
+  </section>
+
+  {
+    projects.length === 0 ? (
+      <section class="section">
+        <div class="empty">还没有条目。</div>
+      </section>
+    ) : (
+      <section class="section">
+        <div class="grid">
+          {projects.map((p) => {
+            const inner = (
+              <>
+                <div class="card-title">{p.name}</div>
+                <p class="card-desc">{p.description}</p>
+                <div class="card-meta">
+                  {p.stack.map((s) => (
+                    <span class="tag">{s}</span>
+                  ))}
+                  <span class="tag">{p.year}</span>
+                </div>
+              </>
+            );
+            return p.href ? (
+              <a class="card" href={p.href} target="_blank" rel="noopener">{inner}</a>
+            ) : (
+              <div class="card">{inner}</div>
+            );
+          })}
+        </div>
+      </section>
+    )
+  }
+</Base>

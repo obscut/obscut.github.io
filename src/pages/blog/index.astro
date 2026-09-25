@@ -1,0 +1,62 @@
+---
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { site } from '../../../site.config';
+import { fmtDate } from '../../lib/format';
+
+const title = '博客';
+
+const all = await getCollection('blog');
+const posts = all
+  .filter((p) => (import.meta.env.PROD ? !p.data.draft : true))
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const grouped = posts.reduce<Record<string, typeof posts>>((acc, p) => {
+  const y = String(p.data.date.getFullYear());
+  (acc[y] ||= []).push(p);
+  return acc;
+}, {});
+const years = Object.keys(grouped).sort((a, b) => Number(b) - Number(a));
+---
+
+<Base title={title} description={`${site.name} 的博客`}>
+  <section class="section">
+    <h1 class="hero-name">{title}</h1>
+    <p class="muted" style="margin-top:10px">
+      共 {posts.length} 篇。新增文章：在 <code>src/content/blog/</code> 下放一个 <code>.md</code> 文件。
+    </p>
+  </section>
+
+  {
+    years.length === 0 ? (
+      <section class="section">
+        <div class="empty">还没有文章。</div>
+      </section>
+    ) : (
+      years.map((y) => (
+        <section class="section">
+          <div class="section-head">
+            <h2>{y}</h2>
+          </div>
+          <div class="list">
+            {grouped[y].map((p) => (
+              <a class="item" href={`/blog/${p.id}/`}>
+                <div class="item-title">
+                  {p.data.title}
+                  {p.data.draft && <span class="tag" style="margin-left:8px">草稿</span>}
+                </div>
+                {p.data.summary && <div class="item-desc">{p.data.summary}</div>}
+                <div class="item-meta">
+                  <span>{fmtDate(p.data.date)}</span>
+                  {p.data.tags.map((t) => (
+                    <span class="tag">{t}</span>
+                  ))}
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      ))
+    )
+  }
+</Base>

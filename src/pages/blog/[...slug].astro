@@ -1,0 +1,43 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+import Base from '../../layouts/Base.astro';
+import { fmtDate } from '../../lib/format';
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const posts = await getCollection('blog');
+  const visible = import.meta.env.PROD ? posts.filter((p) => !p.data.draft) : posts;
+  return visible.map((post) => ({
+    params: { slug: post.id },
+    props: { post },
+  }));
+};
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+const { title, date, summary, tags, draft } = post.data;
+---
+
+<Base title={title} description={summary}>
+  <article class="section">
+    <div class="item-meta" style="margin-bottom:8px">
+      <span>{fmtDate(date)}</span>
+      {tags.map((t: string) => <span class="tag">{t}</span>)}
+      {draft && <span class="tag">草稿</span>}
+    </div>
+    <h1 class="hero-name">{title}</h1>
+    {summary && <p class="muted" style="margin-top:10px">{summary}</p>}
+
+    <hr />
+
+    <div class="prose">
+      <Content />
+    </div>
+
+    <hr />
+
+    <p class="small">
+      <a href="/blog/">← 返回博客</a>
+    </p>
+  </article>
+</Base>

@@ -1,0 +1,95 @@
+---
+import '../styles/global.css';
+import { site, nav } from '../../site.config';
+import ThemeToggle from '../components/ThemeToggle.astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title, description = site.description } = Astro.props;
+
+const pageTitle = title
+  ? `${title} · ${site.title}`
+  : `${site.title} · ${site.role} @ ${site.affiliation}`;
+
+const current = Astro.url.pathname;
+const isActive = (href: string) =>
+  href === '/' ? current === '/' : current === href || current.startsWith(href);
+
+const origin = Astro.site ? Astro.site.origin : 'https://obscut.github.io';
+const canonical = new URL(Astro.url.pathname, origin).href;
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang={site.lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="author" content={site.name} />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content={site.title} />
+    <meta property="og:url" content={canonical} />
+
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e1013" media="(prefers-color-scheme: dark)" />
+
+    {/* 首屏绘制前定好主题，避免闪白 */}
+    <script is:inline>
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme');
+          var dark = saved
+            ? saved === 'dark'
+            : window.matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
+  </head>
+
+  <body>
+    <a href="#main" class="skip-link">跳到主要内容</a>
+
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/">{site.name}</a>
+        <nav class="nav" aria-label="主导航">
+          {
+            nav.map((item) => (
+              <a href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>
+                {item.label}
+              </a>
+            ))
+          }
+        </nav>
+        <ThemeToggle />
+      </div>
+    </header>
+
+    <main class="main" id="main">
+      <div class="wrap">
+        <slot />
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <span>© {year} {site.name}</span>
+        <a href="https://github.com/obscut" target="_blank" rel="noopener">GitHub</a>
+        <span class="footer-right">Built with Astro</span>
+      </div>
+    </footer>
+  </body>
+</html>

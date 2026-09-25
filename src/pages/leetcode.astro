@@ -1,0 +1,103 @@
+---
+import Base from '../layouts/Base.astro';
+import { site, leetcode as lcCfg } from '../../site.config';
+import { getLeetCodeData, formatDate, prettyLang } from '../lib/leetcode';
+
+const title = '刷题';
+const lc = await getLeetCodeData();
+const profileUrl = `https://leetcode.com/u/${lc.username}/`;
+
+const total = lc.total || 1; // 避免除零
+const pct = (n: number) => ((n / total) * 100).toFixed(1) + '%';
+
+const updated = lc.fetchedAt
+  ? new Date(lc.fetchedAt).toLocaleString('zh-CN', { hour12: false })
+  : null;
+---
+
+<Base title={title} description={`${site.name} 的 LeetCode 记录`}>
+  <section class="section">
+    <h1 class="hero-name">{title}</h1>
+    <p class="muted" style="margin-top:10px">
+      数据在每次构建时从 LeetCode 官方接口拉取，无需手动维护。
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="stats">
+      <div>
+        <div class="stat-value">{lc.total}</div>
+        <div class="stat-label">总通过</div>
+      </div>
+      <div>
+        <div class="stat-value" style="color:var(--easy)">{lc.easy}</div>
+        <div class="stat-label">简单</div>
+      </div>
+      <div>
+        <div class="stat-value" style="color:var(--medium)">{lc.medium}</div>
+        <div class="stat-label">中等</div>
+      </div>
+      <div>
+        <div class="stat-value" style="color:var(--hard)">{lc.hard}</div>
+        <div class="stat-label">困难</div>
+      </div>
+      {lc.ranking ? (
+        <div>
+          <div class="stat-value">#{lc.ranking}</div>
+          <div class="stat-label">排名</div>
+        </div>
+      ) : null}
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="bar" role="img" aria-label="难度分布">
+      <span class="bar-easy" style={`width:${pct(lc.easy)}`}></span>
+      <span class="bar-medium" style={`width:${pct(lc.medium)}`}></span>
+      <span class="bar-hard" style={`width:${pct(lc.hard)}`}></span>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--easy)"></i>简单 <span class="num">{lc.easy}</span></span>
+      <span><i style="background:var(--medium)"></i>中等 <span class="num">{lc.medium}</span></span>
+      <span><i style="background:var(--hard)"></i>困难 <span class="num">{lc.hard}</span></span>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>最近提交</h2>
+      <a class="more" href={profileUrl} target="_blank" rel="noopener">LeetCode 主页 →</a>
+    </div>
+    {
+      lc.recent.length === 0 ? (
+        <div class="empty">暂无提交记录。</div>
+      ) : (
+        <div class="list">
+          {lc.recent.map((s) => (
+            <a class="item" href={`https://leetcode.com/problems/${s.titleSlug}/`} target="_blank" rel="noopener">
+              <div class="item-title">{s.title}</div>
+              <div class="item-meta">
+                <span>{formatDate(s.timestamp)}</span>
+                {s.statusDisplay && <span>{s.statusDisplay}</span>}
+                {s.lang && <span class="tag">{prettyLang(s.lang)}</span>}
+              </div>
+            </a>
+          ))}
+        </div>
+      )
+    }
+  </section>
+
+  <section class="section">
+    <p class="small subtle">
+      {lc.ok ? (
+        <>用户名 <code>{lc.username}</code>{updated ? <> · 更新于 {updated}</> : null}</>
+      ) : (
+        <>
+          构建时没能取到数据（可能网络不通，或用户名 <code>{lcCfg.username}</code> 不正确）。
+          可在 <code>site.config.ts</code> 里改用户名或填 <code>leetcode.fallback</code>。
+        </>
+      )}
+    </p>
+  </section>
+</Base>

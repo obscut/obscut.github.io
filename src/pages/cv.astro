@@ -1,0 +1,114 @@
+---
+import Base from '../layouts/Base.astro';
+import { site, intro, links, skills, timeline, projects, publications } from '../../site.config';
+
+const title = '简历';
+---
+
+<Base title={title} description={`${site.name} 的简历`}>
+  <section class="section">
+    <div class="section-head">
+      <div>
+        <h1 class="hero-name">{site.name}</h1>
+        <div class="hero-role">{site.role} · {site.affiliation}</div>
+        <div class="hero-meta">
+          {site.location}
+          {site.email ? ` · ${site.email}` : ''}
+        </div>
+        <div class="link-row">
+          {links.map((l) => <a href={l.href} target="_blank" rel="noopener">{l.label}</a>)}
+        </div>
+      </div>
+      <button class="btn no-print" onclick="window.print()">打印 / 存为 PDF</button>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>简介</h2></div>
+    {intro.map((p) => <p>{p}</p>)}
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>教育经历</h2></div>
+    <div class="timeline">
+      {
+        timeline.map((t) => (
+          <div class="tl-item">
+            <div class="tl-period">{t.period}</div>
+            <div class="tl-title">{t.title}</div>
+            <div class="tl-org">{t.org}</div>
+            {t.description && <div class="tl-desc">{t.description}</div>}
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><h2>技能</h2></div>
+    <div class="list">
+      {
+        skills.map((g) => (
+          <div class="item">
+            <div class="item-sub" style="margin:0">{g.group}</div>
+            <div class="item-meta">
+              {g.items.map((i) => (
+                <span class="tag">{i}</span>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  {
+    publications.length > 0 && (
+      <section class="section">
+        <div class="section-head">
+          <h2>论文</h2>
+          <a class="more" href="/publications/">详情 →</a>
+        </div>
+        <div class="list">
+          {publications.slice(0, 5).map((p) => (
+            <div class="item">
+              <div class="item-title">{p.title}</div>
+              <div class="item-sub">
+                {p.authors.join(', ')} · <em>{p.venue}</em>, {p.year}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  {
+    projects.length > 0 && (
+      <section class="section">
+        <div class="section-head">
+          <h2>项目</h2>
+          <a class="more" href="/projects/">详情 →</a>
+        </div>
+        <div class="list">
+          {projects.slice(0, 5).map((p) => (
+            <div class="item">
+              <div class="item-title">{p.name}</div>
+              <div class="item-desc">{p.description}</div>
+              <div class="item-meta">
+                {p.stack.map((s) => (
+                  <span class="tag">{s}</span>
+                ))}
+                <span>{p.year}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    )
+  }
+
+  <section class="section">
+    <p class="small subtle">最后更新：{new Date().toISOString().slice(0, 10)}</p>
+  </section>
+</Base>

@@ -1,0 +1,40 @@
+---
+import Base from '../layouts/Base.astro';
+import { site, research } from '../../site.config';
+
+const title = '研究';
+---
+
+<Base title={title} description={`${site.name} 的研究方向`}>
+  <section class="section">
+    <h1 class="hero-name">{title}</h1>
+    <p class="muted" style="margin-top:10px">
+      目前主要围绕大模型展开，下面是几个我投入时间最多的方向。
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="list">
+      {
+        research.map((r) => (
+          <div class="item">
+            <div class="item-title">{r.title}</div>
+            <p class="item-desc">{r.summary}</p>
+            <div class="item-meta">
+              {r.tags.map((t) => (
+                <span class="tag">{t}</span>
+              ))}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section">
+    <p class="small muted">
+      相关成果见 <a href="/publications/">论文列表</a>，工程实践见 <a href="/projects/">项目</a>，
+      过程记录见 <a href="/blog/">博客</a>。
+    </p>
+  </section>
+</Base>
