@@ -1,0 +1,5 @@
+# 站点当前处于隐藏状态，禁止所有搜索引擎抓取。
+# 想让站点被搜到时：删除本文件，并把 site.config.ts 里的 noindex 改成 false。
+
+User-agent: *
+Disallow: /

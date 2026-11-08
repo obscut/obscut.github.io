@@ -31,6 +31,7 @@ const year = new Date().getFullYear();
     <title>{pageTitle}</title>
     <meta name="description" content={description} />
     <meta name="author" content={site.name} />
+    {site.noindex && <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="canonical" href={canonical} />
 

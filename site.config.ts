@@ -23,6 +23,13 @@ export const site = {
   email: '',
   /** 头像：放到 public/ 下，比如 public/avatar.jpg，然后填 '/avatar.jpg'；留空用文字 logo */
   avatar: '',
+  /**
+   * 是否让搜索引擎收录这个站点。
+   * false = 不被收录（全站 noindex + robots.txt 双重屏蔽），但知道网址的人仍可访问。
+   * 注意：GitHub Pages 本身没有密码保护，想让别人完全打不开只能关站或接入 Cloudflare Access。
+   * 以后想让站点被搜到，把这里改成 true，再删掉 public/robots.txt 即可。
+   */
+  noindex: true,
 };
 
 /** 首页首屏下方的一句话自我介绍（支持多段） */
